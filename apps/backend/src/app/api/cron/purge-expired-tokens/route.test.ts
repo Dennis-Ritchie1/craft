@@ -1,18 +1,35 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+/**
+ * Tests for GET /api/cron/purge-expired-tokens
+ *
+ * Purges expired GitHub tokens from the database:
+ * - Nulls out github_token_encrypted and github_token_expires_at
+ * - Only targets profiles whose token has passed its expiry
+ * - Leaves NULL github_token_expires_at (classic PATs) untouched
+ *
+ * Covers:
+ *   - Authorization enforcement (CRON_SECRET present / absent)
+ *   - Happy path: mix of expired and non-expired tokens, only expired purged
+ *   - Purge count matches actual deleted rows
+ *   - Unauthenticated request returns 401
+ *   - Error handling on database failure
+ */
+
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { NextRequest } from 'next/server';
+
+// ── Mocks ─────────────────────────────────────────────────────────────────────
 
 const mockUpdate = vi.fn();
 const mockEq = vi.fn();
 const mockLt = vi.fn();
 const mockNot = vi.fn();
+const mockFrom = vi.fn();
 const mockRecordSuccess = vi.fn();
 const mockRecordFailure = vi.fn();
 
 vi.mock('@/lib/supabase/server', () => ({
     createClient: () => ({
-        from: vi.fn().mockReturnValue({
-            update: mockUpdate,
-        }),
+        from: mockFrom,
     }),
 }));
 
@@ -26,6 +43,8 @@ vi.mock('@/services/cron-failure-tracker.service', () => ({
 vi.mock('@/lib/api/cron-auth', () => ({
     withCronAuth: (handler: any) => handler,
 }));
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function makeRequest(authHeader?: string) {
     const headers: Record<string, string> = {};
@@ -163,6 +182,9 @@ describe('GET /api/cron/purge-expired-tokens', () => {
             // Verify chain of filtering: lt(...) and not(...is, null)
             expect(mockLt).toHaveBeenCalled();
             expect(mockNot).toHaveBeenCalled();
+        });
+    });
+});
         });
     });
 });
