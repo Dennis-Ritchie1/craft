@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { getRetentionPolicyWindows, readRetentionDays, validateRetentionWindows } from '@/lib/retention-policy';
 import { cleanupService } from '@/services/cleanup.service';
 import { createLogger, resolveCorrelationId, CORRELATION_ID_HEADER } from '@/lib/api/logger';
+import { withCronAuth } from '@/lib/api/cron-auth';
 
 /**
  * Cron: permanently purge tombstoned deployments past the retention window,
@@ -17,13 +18,9 @@ import { createLogger, resolveCorrelationId, CORRELATION_ID_HEADER } from '@/lib
  * Orphaned artifacts are kept for a 24h debugging window and deleted in batches
  * of up to 100 per run (see CleanupService.purgeOrphanedArtifacts).
  *
- * Scheduled daily via vercel.json.  Protected by CRON_SECRET.
+ * Scheduled daily via vercel.json.  Protected by CRON_SECRET via withCronAuth.
  */
-export async function GET(req: NextRequest) {
-    const cronSecret = process.env.CRON_SECRET;
-    if (cronSecret && req.headers.get('authorization') !== `Bearer ${cronSecret}`) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+async function handlePurgeTombstonedDeployments(req: NextRequest) {
 
     const correlationId = resolveCorrelationId(req);
     const log = createLogger({ correlationId, service: 'purge-tombstoned-deployments-cron' });
@@ -69,3 +66,5 @@ export async function GET(req: NextRequest) {
         { headers },
     );
 }
+
+export const GET = withCronAuth(handlePurgeTombstonedDeployments);
