@@ -7,19 +7,19 @@ interface TierUsageIndicatorsProps {
   activeCustomDomains: number;
 }
 
-type UsageState = 'normal' | 'warning' | 'critical' | 'unavailable';
+export type UsageState = 'normal' | 'warning' | 'critical' | 'unavailable';
 
-interface UsageInfo {
+export interface UsageInfo {
   used: number;
   limit: number;
   percent: number;
   state: UsageState;
 }
 
-const WARNING_THRESHOLD_PERCENT = 80;
+export const WARNING_THRESHOLD_PERCENT = 80;
 
 export function getUsageInfo(used: number, limit: number): UsageInfo {
-  // -1 is the sentinel for an unlimited allowance.
+export type UsageState = 'normal' | 'warning' | 'critical' | 'unavailable';
   if (limit === -1) {
     return { used, limit, percent: 0, state: 'normal' };
   }

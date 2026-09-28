@@ -17,6 +17,29 @@ npm run build
 
 5. Link the PR to the relevant issue.
 
+## URL-synced filters
+
+List pages with user-facing filters (search, status, category, …) keep their
+filter state in the URL query string so filtered views are shareable and
+survive a refresh. Follow the same pattern everywhere instead of re-deriving it:
+
+- **Read** the initial state from `useSearchParams()` (or a Server Component's
+  `searchParams` prop passed down as `initialFilters`), falling back to defaults
+  for missing or unknown values.
+- **Hold** the live state in React; keep the filter UI itself a controlled
+  component that only receives `filters` and `onChange`.
+- **Write** changes back with a debounced `router.replace(url, { scroll: false })`
+  — `replace`, not `push`, and omit default values from the query string.
+
+Reference implementation: `DeploymentFiltersBar`
+(`apps/frontend/src/components/deployments/DeploymentFiltersBar.tsx`) — its
+JSDoc `@example` shows the pattern end-to-end.
+
+`TemplateCatalogFilters`
+(`apps/frontend/src/components/app/templates/TemplateCatalogFilters.tsx`) and
+its page already sync to the URL but without debouncing; aligning it with this
+convention is a candidate for a future issue.
+
 ## Rate Limiting, Idempotency, and Tier Enforcement
 
 Several backend middleware modules read tunable behavior from environment
